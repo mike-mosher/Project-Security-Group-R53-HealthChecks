@@ -1,4 +1,4 @@
-# Automatically Updated Security Group with Route53 Health Check Cidr Ranges
+# Automatically Updated Security Group with Route53 Healthcheck CIDR Ranges
 
 ---
 
