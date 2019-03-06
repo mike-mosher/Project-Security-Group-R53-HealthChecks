@@ -1,0 +1,65 @@
+service: project-security-group-r53-healthchecks
+
+provider:
+  name: aws
+  runtime: python3.7
+  region: us-west-2
+  stackName: project-security-group-r53-healthchecks
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: '*'
+    - Effect: Allow
+      Action:
+        - ec2:DescribeSecurityGroups
+        - ec2:AuthorizeSecurityGroupIngress
+        - ec2:RevokeSecurityGroupIngress
+      Resource: '*'
+
+functions:
+  main:
+    handler: main.main
+    environment:
+      region: ${opt:region, self:provider.region}
+      SecurityGroupId: !GetAtt R53HealthCheckSecurityGroup.GroupId
+      FromPort: ${self:custom.FromPort}
+      ToPort: ${self:custom.ToPort}
+      IpProtocol: ${self:custom.IpProtocol}
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+
+  # Custom variables
+  FromPort: 80
+  ToPort: 80
+  IpProtocol: 'TCP'
+  sns_topic_amazon_ip_space_changed: arn:aws:sns:us-east-1:806199016981:AmazonIpSpaceChanged
+
+plugins:
+  - serverless-python-requirements
+resources:
+  Resources:
+    R53HealthCheckSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupName: Route53-HealthCheck-Cidr-Ranges
+        GroupDescription: Route53-HealthCheck-Cidr-Ranges
+    LambdaResourcePolicy:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        FunctionName:
+          Ref: MainLambdaFunction
+        Principal: sns.amazonaws.com
+        Action: 'lambda:InvokeFunction'
+        SourceArn: ${self:custom.sns_topic_amazon_ip_space_changed}
+    SNSSubscription:
+      Type: "AWS::SNS::Subscription"
+      Properties:
+        Endpoint: !GetAtt MainLambdaFunction.Arn
+        Protocol: lambda
+        Region: us-east-1
+        TopicArn: ${self:custom.sns_topic_amazon_ip_space_changed}
