@@ -50,7 +50,7 @@ def get_aws_service_cidr_ranges(ip_ranges_url):
     return response.json()['prefixes']
 
 
-def filter_cidr_ranges_by_service_type_and_current_region(cidr_range, service):
+def filter_cidr_ranges_by_service_type_and_current_region(cidr_ranges, service):
     """
     Returns a filtered list of AWS services by service type and current region
 
@@ -69,9 +69,9 @@ def filter_cidr_ranges_by_service_type_and_current_region(cidr_range, service):
         list -- list of filtered dictionary objects that represent AWS services
     """
 
-    return [prefix['ip_prefix'] for prefix in cidr_range
-            if prefix['service'] == service and
-            prefix['region'] == region]
+    return [cidr_range['ip_prefix'] for cidr_range in cidr_ranges
+            if cidr_range['service'] == service and
+            cidr_range['region'] == region]
 
 
 def remove_all_rules_from_security_group(security_group):
